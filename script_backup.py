@@ -1,66 +1,31 @@
-import re
-# pip install bs4
-import urllib.request
+txt_url = urlopen("https://pt.wikipedia.org/wiki/Intelig%C3%AAncia_artificial").read()
+txt_html = BeautifulSoup(txt_url, 'lxml').find_all('p')
+texto_pag_web = ''
+for i in txt_html:
+    texto_pag_web += i.text.lower()
 
-import bs4 as bs
-import nltk
-from numpy.random import choice
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+lista_sentencas = nltk.sent_tokenize(texto_pag_web)
 
-# import spacy
-# pip install spacy
+nlp = spacy.load("pt_core_news_sm")
 
-# spacy.__version__
-nltk.download('punkt')
-
-nltk.__version__
-
-# !python3 -m spacy download pt
-
-dados = urllib.request.urlopen('https://pt.wikipedia.org/wiki/Intelig%C3%AAncia_artificial')
-dados = dados.read()
-dados
-
-dados_html = bs.BeautifulSoup(dados, 'lxml')
-# dados_html
-
-paragrafos = dados_html.find_all('p')
-
-len(paragrafos)
-
-paragrafos[0]
-
-paragrafos[0].text
-
-conteudo = ''
-for p in paragrafos:
-    conteudo += p.text
-
-    conteudo
-
-lista_sentencas = nltk.sent_tokenize(conteudo)
+# palavras que o modelo irá ignorar
+stop_words = spacy.lang.pt.stop_words.STOP_WORDS
+# pontuações que o modelo irá ignorar
+stop_punct = string.punctuation
 
 
-# nlp = spacy.load("pt_core_news_sm")
-
-#
-# stop_words = spacy.lang.pt.stop_words.STOP_WORDS
-# # pontuações que o modelo irá ignorar
-# stop_punct = string.punctuation
 def preprocessamento(texto):  # preparando o texto para ser processado pelo spacy
     # tirar urls
     texto = re.sub(r"https?://[A-Za-z0-9./]+", ' ', texto)
     # tirar espaços em branco
     texto = re.sub(r" +", ' ', texto)
     # tirar radical (lematização)
-    documento = texto
-    input_user = ['porra']
-
-    input_user = [palavra for palavra in input_user]
+    documento = nlp(texto)
+    input_user = []
+    for token in documento:
+        input_user.append(token.lemma_)
+    input_user = [palavra for palavra in input_user if palavra not in stop_words and palavra not in stop_punct]
     input_user = ' '.join([str(elemento) for elemento in input_user if not elemento.isdigit()])
-    return input_user
-
     return input_user
 
 
@@ -111,4 +76,20 @@ while True:
     else:
         print('Chatbot: Até breve!')
         break
-# TODO: importar a merda do spcacy ver https://github.com/HerikMuller2002/Estudo-Chatbots/blob/c991cd4052a18e1ccbe592634fb3434fb2723f97/chat%20base/app.py#L63
+
+'''# api com flask
+app = Flask(__name__)
+@app.route("/<string:txt>", methods=["POST"])
+
+def conversar (txt):
+  resposta =''
+  texto_usuario = txt.lower()
+  if responder_saudacao(texto_usuario) != None:
+    resposta = responder_saudacao(texto_usuario) 
+  else:
+    resposta = responder(preprocessamento(texto_usuario))
+    lista_sentencas_preprocessada.remove(preprocessamento(texto_usuario))
+
+  return jsonify({"texto_respondido":resposta})
+
+app.run(port=5000,debug=False)'''
