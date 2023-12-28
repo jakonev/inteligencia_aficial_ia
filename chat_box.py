@@ -1,17 +1,17 @@
+import random
 import re
+import string
 # pip install bs4
 import urllib.request
 
 import bs4 as bs
 import nltk
-from numpy.random import choice
+import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# import spacy
-# pip install spacy
+spacy.__version__
 
-# spacy.__version__
 nltk.download('punkt')
 
 nltk.__version__
@@ -39,46 +39,73 @@ for p in paragrafos:
 
     conteudo
 
+conteudo = conteudo.lower()
+conteudo
+
 lista_sentencas = nltk.sent_tokenize(conteudo)
 
+pln = spacy.load('pt_core_news_sm')
 
-# nlp = spacy.load("pt_core_news_sm")
+stop_words = spacy.lang.pt.stop_words.STOP_WORDS
 
-#
-# stop_words = spacy.lang.pt.stop_words.STOP_WORDS
-# # pontuações que o modelo irá ignorar
-# stop_punct = string.punctuation
-def preprocessamento(texto):  # preparando o texto para ser processado pelo spacy
-    # tirar urls
+b = string.punctuation
+
+
+def preprocessamento(texto):
+    # URLs
     texto = re.sub(r"https?://[A-Za-z0-9./]+", ' ', texto)
-    # tirar espaços em branco
+
+    # Espaços em branco
     texto = re.sub(r" +", ' ', texto)
-    # tirar radical (lematização)
-    documento = texto
-    input_user = ['porra']
 
-    input_user = [palavra for palavra in input_user]
-    input_user = ' '.join([str(elemento) for elemento in input_user if not elemento.isdigit()])
-    return input_user
+    documento = pln(texto)
+    lista = []
+    for token in documento:
+        lista.append(token.lemma_)
 
-    return input_user
+    lista = [palavra for palavra in lista if palavra not in stop_words and palavra not in string.punctuation]
+    lista = ' '.join([str(elemento) for elemento in lista if not elemento.isdigit()])
+
+    return lista
 
 
-# guardar as sentenças que serão pré-processadas pela função em uma lista
+texto_teste = 'https://www.iaexpert.com.br ' + lista_sentencas[0]
+
+resultado = preprocessamento(texto_teste)
+
 lista_sentencas_preprocessada = []
 for i in range(len(lista_sentencas)):
     lista_sentencas_preprocessada.append(preprocessamento(lista_sentencas[i]))
 
-textos_boas_vindas_entrada = ('hey', 'olá', 'opa', 'oi', 'eae')
-textos_boas_vindas_respostas = ('hey, como posso ajudar?', 'olá, como posso ajudar?', 'oi, como posso ajudar?')
-textos_saida = ('sair', 'tchau', 'exit', 'esc')
+for _ in range(5):
+    i = random.randint(0, len(lista_sentencas) - 1)
+    lista_sentencas[i]
+    lista_sentencas_preprocessada[i]
+    print('-----')
+
+textos_boas_vindas_entrada = ('hey', 'olá', 'opa', 'oi', 'eae', 'diga', 'ok', 'fala', 'brother', 'brow', 'firmeza', 'topa')
+textos_boas_vindas_respostas = (
+'hey, como posso ajudar?', 'olá, como posso ajudar?', 'oi, como posso ajudar?', 'digo, oi, posso ajudar',
+'olá suas perguntas são valiosas', 'oi, quer saber mais sobre IA', 'hey, digite sua dúvida')
+textos_saida = ('sair', 'tchau', 'exit', 'esc', 'fui', 'desligar', 'off')
+
+'olá tudo bem'.split()
 
 
 def responder_saudacao(texto):
     for palavra in texto.split():
         if palavra.lower() in textos_boas_vindas_entrada:
-            return choice(textos_boas_vindas_respostas)
+            return random.choice(textos_boas_vindas_respostas)
 
+
+responder_saudacao('olá tudo bem?')
+frases_teste = lista_sentencas_preprocessada[:3]
+frases_teste.append(frases_teste[0])
+vetores_palavras = TfidfVectorizer()
+palavras_vetorizadas = vetores_palavras.fit_transform(frases_teste)
+
+
+# print(vetores_palavras.get_feature_names_out())
 
 def responder(texto_usuario):
     resposta_chatbot = ''
@@ -91,24 +118,25 @@ def responder(texto_usuario):
     vetor_similar.sort()
     vetor_encontrado = vetor_similar[-2]
     if (vetor_encontrado == 0):
-        resposta_chatbot = 'Desculpe, mas não entendi!'
-
+        resposta_chatbot = resposta_chatbot + 'Desculpe, mas não entendi!'
         return resposta_chatbot
     else:
-        resposta_chatbot = lista_sentencas[indice_sentenca]
-
+        resposta_chatbot = resposta_chatbot + lista_sentencas[indice_sentenca]
         return resposta_chatbot
 
 
-while True:
-    texto_usuario = input('Usuário: ').lower()
-    if texto_usuario not in textos_saida:
-        if responder_saudacao(texto_usuario) != None:
-            print('Chatbot:', responder_saudacao(texto_usuario))
+continuar = True
+print('Olá, sou um chatbot e vou responder perguntas sobre inteligência artificial: ')
+while (continuar == True):
+    texto_usuario = input()
+    texto_usuario = texto_usuario.lower()
+    if (texto_usuario != 'sair'):
+        if (responder_saudacao(texto_usuario) != None):
+            print('Chatbot: ' + responder_saudacao(texto_usuario))
         else:
-            print('Chatbot:', responder(preprocessamento(texto_usuario)))
+            print('Chatbot: ')
+            print(responder(preprocessamento(texto_usuario)))
             lista_sentencas_preprocessada.remove(preprocessamento(texto_usuario))
     else:
+        continuar = False
         print('Chatbot: Até breve!')
-        break
-# TODO: importar a merda do spcacy ver https://github.com/HerikMuller2002/Estudo-Chatbots/blob/c991cd4052a18e1ccbe592634fb3434fb2723f97/chat%20base/app.py#L63
